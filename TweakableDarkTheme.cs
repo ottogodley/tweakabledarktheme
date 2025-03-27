@@ -39,8 +39,8 @@ namespace TweakableDarkTheme
         // Our new colors
         private static Color mainBackgroundColor = Color.FromArgb(12, 12, 12);
         private static Color mainTextColor = Color.FromArgb(210, 210, 210);
-        private static readonly Color disabledTextColor = ControlPaint.Dark(mainTextColor, 0.1f);
-        private static readonly Color buttonBackgroundColor = Color.FromArgb(23, 26, 39);
+        private static Color disabledTextColor = ControlPaint.Dark(mainTextColor, 0.1f);
+        private static Color buttonBackgroundColor = Color.FromArgb(23, 26, 39);
         private static readonly Color planetColor = Color.FromArgb(128, 128, 128);
         private static readonly Color orbitColor = Color.FromArgb(128, planetColor);
         private static readonly Color enabledSpaceMasterButtonColor = Color.FromArgb(248, 231, 28);
@@ -60,7 +60,7 @@ namespace TweakableDarkTheme
 
         // Old colors
         private static readonly Color oldTextColor = Color.FromArgb(255, 255, 192);
-        private static readonly Color oldBackgrounColor = Color.FromArgb(0, 0, 64);
+        private static readonly Color oldBackgroundColor = Color.FromArgb(0, 0, 64);
         private static readonly Color oldPlayerContactColor = Color.FromArgb(255, 255, 192);
         private static readonly Color oldNeutralContactColor = Color.FromArgb(144, 238, 144);
         private static readonly Color oldCivilianContactColor = Color.FromArgb(0, 206, 209);
@@ -130,6 +130,8 @@ namespace TweakableDarkTheme
                 buttonFont = new Font(font.FontFamily, 7, FontStyle.Bold);
                 singleLineTextBoxFont = new Font(font.FontFamily, 8);
             }
+            // refresh colours for any that need updating dynamically from the above 2
+            updateColours();
 
             // -- Images -- //
             string imagePath = @"Patches\TweakableDarkTheme\Icons\";
@@ -265,7 +267,7 @@ namespace TweakableDarkTheme
             {
                 __result = mainTextColor;
             }
-            else if (__result == oldBackgrounColor || __result == oldEnabledButtonBackgroundColor)
+            else if (__result == oldBackgroundColor || __result == oldEnabledButtonBackgroundColor)
             {
                 __result = mainBackgroundColor;
             }
@@ -634,6 +636,7 @@ namespace TweakableDarkTheme
             if(font != null) Serialize("font", font);
             if (mainBackgroundColor != Color.FromArgb(12, 12, 12)) Serialize("background", mainBackgroundColor);
             if (mainTextColor != Color.FromArgb(210, 210, 210)) Serialize("foreground", mainTextColor);
+            updateColours();
         }
 
         private void selectFontDialog() {
@@ -664,6 +667,11 @@ namespace TweakableDarkTheme
             {
                 mainTextColor = dialog.Color;
             }
+        }
+
+        private void updateColours() {
+            buttonBackgroundColor = ControlPaint.Light(mainBackgroundColor, 0.1f);
+            disabledTextColor = ControlPaint.Dark(mainTextColor, 0.1f);
         }
     }
 }
