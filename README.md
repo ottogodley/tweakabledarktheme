@@ -17,7 +17,8 @@ Changes include:
 
 ## Install
 
-Unzip into Patches directory in your Aurora install directory. Resulting directory structure should be as follows:
+* Install [AuroraPatch](https://github.com/Aurora-Modders/AuroraPatch)
+* Unzip release archive into Patches directory in your Aurora install directory. Resulting directory structure should be as follows:
 `Aurora/Patches/TweakableDarkTheme/*mod dll file and icons directory here*`
 
 ## Dependencies
