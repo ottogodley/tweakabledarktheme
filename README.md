@@ -12,8 +12,11 @@ Changes include:
 2) Background colour customisation
 3) Foreground (text) colour customisation
 
-![ChangeSettings](/Settings.png?raw=true)
-![TweakableDarkTheme](/TweakableDarkTheme.png?raw=true)
+![ChangeSettings](/Settings.png)
+![TweakableDarkTheme](/TweakableDarkTheme.png)
+![TweakableDarkTheme](/TweakableDarkThemeYellow.png)
+![TweakableDarkTheme](/TweakableDarkThemeBlue.png)
+![TweakableDarkTheme](/TweakableDarkThemeGreen.png)
 
 ## Install
 
