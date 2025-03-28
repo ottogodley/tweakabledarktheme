@@ -20,8 +20,6 @@ namespace TweakableDarkTheme
 
         // The global font used.
         public static Font font = null;
-        public static Color textColourFromSettings = Color.FromArgb(210, 210, 210);
-        public static Color backgroundColourFromSettings = Color.FromArgb(12, 12, 12);
         private static Lib.Lib lib;
 
         // Fonts
@@ -45,18 +43,6 @@ namespace TweakableDarkTheme
         private static readonly Color orbitColor = Color.FromArgb(128, planetColor);
         private static readonly Color enabledSpaceMasterButtonColor = Color.FromArgb(248, 231, 28);
         private static readonly Color enabledAutoTurnsButtonColor = Color.FromArgb(126, 211, 33);
-
-        // Toolbar button background colors
-        private static readonly Color economicsButtonBackgroundColor = Color.FromArgb(26, 45, 46);
-        private static readonly Color designButtonBackgroundColor = Color.FromArgb(41, 44, 46);
-        private static readonly Color fleetButtonBackgroundColor = Color.FromArgb(45, 26, 26);
-        private static readonly Color groundForcesButtonBackgroundColor = Color.FromArgb(42, 45, 28);
-        private static readonly Color intelligenceButtonBackgroundColor = Color.FromArgb(47, 38, 47);
-        private static readonly Color explorationButtonBackgroundColor = Color.FromArgb(24, 27, 78);
-        private static readonly Color personnelButtonBackgroundColor = Color.FromArgb(18, 41, 58);
-        private static readonly Color surveyButtonBackgroundColor = Color.FromArgb(40, 31, 24);
-        private static readonly Color technologyButtonBackgroundColor = Color.FromArgb(42, 22, 45);
-        private static readonly Color sectorButtonBackgroundColor = Color.FromArgb(20, 45, 31);
 
         // Old colors
         private static readonly Color oldTextColor = Color.FromArgb(255, 255, 192);
@@ -126,9 +112,11 @@ namespace TweakableDarkTheme
                 LogInfo("Saved settings not found");
             }
             // set some other fonts based on (potentially custom) main font
+            float fontSize;
             if (font != null) {
-                buttonFont = new Font(font.FontFamily, 7, FontStyle.Bold);
-                singleLineTextBoxFont = new Font(font.FontFamily, 8);
+                fontSize = font.SizeInPoints;
+                buttonFont = new Font(font.FontFamily, fontSize - 1, FontStyle.Bold);
+                singleLineTextBoxFont = new Font(font.FontFamily, fontSize);
             }
             // refresh colours for any that need updating dynamically from the above 2
             updateColours();
@@ -138,6 +126,7 @@ namespace TweakableDarkTheme
             List<string> icons = Directory.EnumerateFiles(imagePath).ToList();
             foreach (KeyValuePair<AuroraButton, string> auroraButtons in lib.KnowledgeBase.GetKnownButtonNames())
             {
+                LogInfo("Checking icon: " + auroraButtons.Value);
                 string iconPath = imagePath + auroraButtons.Value + ".BackgroundImage.png";
                 if (icons.Contains(iconPath))
                 {
@@ -624,14 +613,14 @@ namespace TweakableDarkTheme
             Form settingsDialog = new Form();
             settingsDialog.Text = "Customise Theme";
             FlowLayoutPanel flPanel = new FlowLayoutPanel();
-            flPanel.Size = new System.Drawing.Size(104, 32);
             flPanel.AutoSize = true;
             flPanel.Controls.Add(fontButton);
             flPanel.Controls.Add(backgroundButton);
             flPanel.Controls.Add(foregroundButton);
             settingsDialog.Controls.Add(flPanel);
             settingsDialog.ShowDialog();
-            settingsDialog.Size = new System.Drawing.Size(104, 32);
+            settingsDialog.AutoSize = true;
+            settingsDialog.Size = new System.Drawing.Size(75, 18);
             // Write settings to files            
             if(font != null) Serialize("font", font);
             if (mainBackgroundColor != Color.FromArgb(12, 12, 12)) Serialize("background", mainBackgroundColor);
