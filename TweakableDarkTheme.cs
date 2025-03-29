@@ -20,6 +20,7 @@ namespace TweakableDarkTheme
 
         // The global font used.
         public static Font font = null;
+        public static bool autoAdjustForegroundColour = false;
         private static Lib.Lib lib;
 
         // Fonts
@@ -110,6 +111,7 @@ namespace TweakableDarkTheme
                 font = Deserialize<Font>("font");
                 if (File.Exists(@"Patches\TweakableDarkTheme\background.json")) mainBackgroundColor = Deserialize<Color>("background");
                 if (File.Exists(@"Patches\TweakableDarkTheme\foreground.json")) mainTextColor = Deserialize<Color>("foreground");
+                if (File.Exists(@"Patches\TweakableDarkTheme\autoAdjustForegroundColour.json")) autoAdjustForegroundColour = Deserialize<bool>("autoAdjustForegroundColour");
             }
             catch (Exception)
             {
@@ -710,6 +712,18 @@ namespace TweakableDarkTheme
 
         protected override void ChangeSettings()
         {
+            // Read saved settings (if they exist)
+            try
+            {
+                font = Deserialize<Font>("font");
+                if (File.Exists(@"Patches\TweakableDarkTheme\background.json")) mainBackgroundColor = Deserialize<Color>("background");
+                if (File.Exists(@"Patches\TweakableDarkTheme\foreground.json")) mainTextColor = Deserialize<Color>("foreground");
+                if (File.Exists(@"Patches\TweakableDarkTheme\autoAdjustForegroundColour.json")) autoAdjustForegroundColour = Deserialize<bool>("autoAdjustForegroundColour");
+            }
+            catch (Exception)
+            {
+                LogInfo("Saved settings not found");
+            }
             // Font
             Button fontButton = new Button();
             fontButton.Text = "Font";
@@ -725,14 +739,23 @@ namespace TweakableDarkTheme
             foregroundButton.Text = "Foreground";
             foregroundButton.Click += (sender, e) => selectForegroundDialog();
             foregroundButton.Anchor = (AnchorStyles.Top | AnchorStyles.Right);
+            // Auto adjust foreground colour based on background colour
+            RadioButton autoAdjustButton = new RadioButton();
+            autoAdjustButton.Text = "Auto-adjust foreground";
+            autoAdjustButton.Anchor = (AnchorStyles.Bottom | AnchorStyles.Left);
+            autoAdjustButton.Dock = DockStyle.Bottom;
+            autoAdjustButton.Width = 200;
+            if (autoAdjustForegroundColour) autoAdjustButton.Checked = true;
             // Settings
             Form settingsDialog = new Form();
             settingsDialog.Text = "Customise Theme";
             FlowLayoutPanel flPanel = new FlowLayoutPanel();
             flPanel.AutoSize = true;
+            flPanel.Dock = DockStyle.Fill;
             flPanel.Controls.Add(fontButton);
             flPanel.Controls.Add(backgroundButton);
             flPanel.Controls.Add(foregroundButton);
+            flPanel.Controls.Add(autoAdjustButton);
             settingsDialog.Controls.Add(flPanel);
             settingsDialog.ShowDialog();
             settingsDialog.AutoSize = true;
@@ -741,6 +764,7 @@ namespace TweakableDarkTheme
             if(font != null) Serialize("font", font);
             if (mainBackgroundColor != Color.FromArgb(12, 12, 12)) Serialize("background", mainBackgroundColor);
             if (mainTextColor != Color.FromArgb(210, 210, 210)) Serialize("foreground", mainTextColor);
+            if (autoAdjustButton.Checked) Serialize("autoAdjustForegroundColour", true);
             updateColours();
         }
 
@@ -774,6 +798,18 @@ namespace TweakableDarkTheme
             }
         }
 
+        private void adjustForegroundForBackground() {
+            if(mainBackgroundColor.R*2 + mainBackgroundColor.G*7 + mainBackgroundColor.B < 500) { // Dark background, therefore light text
+                mainTextColor = ControlPaint.Light(mainBackgroundColor, 0.75f);
+                buttonBackgroundColor = ControlPaint.Light(mainBackgroundColor, 0.1f);
+                disabledTextColor = ControlPaint.Dark(mainTextColor, 0.1f);
+            } else { // Light background, therefore dark text
+                mainTextColor = ControlPaint.Dark(mainBackgroundColor, 0.75f);
+                buttonBackgroundColor = ControlPaint.Dark(mainBackgroundColor, 0.1f);
+                disabledTextColor = ControlPaint.Light(mainTextColor, 0.1f);
+            }
+        }
+
         private void updateColours() {
             if (mainBackgroundColor == mainTextColor) {
                 mainBackgroundColor = ControlPaint.Dark(mainBackgroundColor, 1f);
@@ -782,6 +818,10 @@ namespace TweakableDarkTheme
 
             buttonBackgroundColor = ControlPaint.Light(mainBackgroundColor, 0.1f);
             disabledTextColor = ControlPaint.Dark(mainTextColor, 0.1f);
+
+            if (autoAdjustForegroundColour) {
+                adjustForegroundForBackground();
+            }
         }
 
         // Graphics Override attempt for Draw/FillRectangle methods
