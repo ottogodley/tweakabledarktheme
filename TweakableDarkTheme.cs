@@ -65,6 +65,10 @@ namespace TweakableDarkTheme
         private const int EC_RIGHTMARGIN = 2;
         private const int EC_LEFTMARGIN = 1;
 
+        private static List<Action<Graphics, Pen>> GraphicsDrawRectangleActions = new List<Action<Graphics, Pen>>();
+        private static List<Action<Graphics, Brush>> GraphicsFillRectangleActions = new List<Action<Graphics, Brush>>();
+        private static Dictionary<Graphics, bool> AuroraGraphics = new Dictionary<Graphics, bool>();
+
         [DllImport("User32.dll")]
         private static extern IntPtr SendMessage(IntPtr hWnd, int msg, int wParam, int lParam);
 
@@ -186,6 +190,9 @@ namespace TweakableDarkTheme
                     if (solidBrush.Color == mainTextColor)
                     {
                         solidBrush.Color = oldPlayerContactColor;
+                    } else if (solidBrush.Color == mainBackgroundColor)
+                    {
+                        solidBrush.Color = Color.Transparent;   
                     }
                 }
             });
@@ -224,6 +231,30 @@ namespace TweakableDarkTheme
                 }
             });
 
+            TweakableDarkTheme.DrawRectanglePrefixAction((graphics, pen) =>
+            {
+                graphics.SmoothingMode = SmoothingMode.AntiAlias;
+
+                if (pen.Color == mainBackgroundColor)
+                {
+                    pen.Color = Color.Transparent;
+                }
+            });
+
+            TweakableDarkTheme.FillRectanglePrefixAction((graphics, brush) =>
+            {
+                graphics.SmoothingMode = SmoothingMode.AntiAlias;
+
+                if (brush.GetType() == typeof(SolidBrush))
+                {
+                    var solidBrush = brush as SolidBrush;
+                    if (solidBrush.Color == mainBackgroundColor)
+                    {
+                        solidBrush.Color = Color.Transparent;   
+                    }
+                }
+            });
+
             var colorConstructorPostfix = new HarmonyMethod(GetType().GetMethod("ColorConstructorPostfix", AccessTools.all));
 
             // Patch all Color.FromArgb overloads for color overrides
@@ -234,6 +265,10 @@ namespace TweakableDarkTheme
                     harmony.Patch(method, postfix: colorConstructorPostfix);
                 }
             }
+
+            // tweak new ListViewItems after they are added to a list, such as planets in the System View window
+            harmony.Patch(AccessTools.Method(typeof(ListView.ListViewItemCollection), "Add", new[] { typeof(ListViewItem) }),
+                postfix: new HarmonyMethod(GetType().GetMethod("ListItemPostfix", AccessTools.all)));
 
             // Also hook into some predefined/named color properties
             harmony.Patch(typeof(Color).GetMethod("get_LightGray"), postfix: colorConstructorPostfix);
@@ -246,6 +281,25 @@ namespace TweakableDarkTheme
                 foreach (var ctor in form.GetConstructors())
                 {
                     harmony.Patch(ctor, postfix: formConstructorPostfix);
+                }
+            }
+
+            // Attempt to prefix Draw/FillRectangle methods
+            HarmonyMethod graphicsDrawRectanglePrefixMethod = new HarmonyMethod(GetType().GetMethod("GraphicsDrawRectanglePrefix", AccessTools.all));
+            HarmonyMethod graphicsFillRectanglePrefixMethod = new HarmonyMethod(GetType().GetMethod("GraphicsFillRectanglePrefix", AccessTools.all));
+            foreach (var graphics in typeof(Graphics).Assembly.GetTypes().Where(t => typeof(Graphics).IsAssignableFrom(t)))
+            {
+                try
+                {
+                    foreach (var method in graphics.GetMethods(AccessTools.all))
+                    {
+                        if (method.Name == "DrawRectangle") harmony.Patch(method, prefix: graphicsDrawRectanglePrefixMethod);
+                        else if (method.Name == "FillRectangle") harmony.Patch(method, prefix: graphicsFillRectanglePrefixMethod);
+                    }
+                }
+                catch (Exception e)
+                {
+                    LogError($"ThemeCreator failed to patch graphics draw/fill ellipse methods for {graphics.Name}, exception: {e}");
                 }
             }
         }
@@ -263,6 +317,17 @@ namespace TweakableDarkTheme
             else if (__result == oldDisabledTextColor)
             {
                 __result = disabledTextColor;
+            }
+        }
+
+        private static void ListItemPostfix(ref ListViewItem __result)
+        {
+            if (__result.SubItems != null)
+            {
+                foreach (ListViewItem.ListViewSubItem subItem in __result.SubItems)
+                {
+                    // subItem.BackColor = Color.Transparent;
+                }
             }
         }
 
@@ -306,6 +371,10 @@ namespace TweakableDarkTheme
             {
                 ApplyListViewChanges(control as ListView);
             }
+            else if (control.GetType() == typeof(DataGridView))
+            {
+                ApplyDataGridViewChanges(control as DataGridView);
+            }
             else if (control.GetType() == typeof(ListBox))
             {
                 ApplyListBoxChanges(control as ListBox);
@@ -322,6 +391,14 @@ namespace TweakableDarkTheme
             {
                 ApplyTextBoxChanges(control as TextBox);
             }
+            else if (control.GetType() == typeof(ScrollBar))
+            {
+                ApplyScrollBarChanges(control as ScrollBar);
+            }
+            else if (control.GetType() == typeof(TabPage))
+            {
+                ApplyTabPageChanges(control as TabPage);
+            }
             else if (control is Form)
             {
                 ApplyFormChanges(control as Form);
@@ -331,6 +408,7 @@ namespace TweakableDarkTheme
         private static void ApplyTabControlChanges(TabControl tabControl)
         {
             tabControl.SizeMode = TabSizeMode.FillToRight;
+            // tabControl.Appearance = TabAppearance.Buttons;
 
             // Patch tactical map tabs to fit on two lines (necessary due to custom font)
             if (tabControl.Name == "tabSidebar")
@@ -372,6 +450,10 @@ namespace TweakableDarkTheme
                 ApplyAutoTurnsButtonStyle(button);
                 button.BackgroundImageChanged += OnAutoTurnsButtonBackgroundImageChanged;
             }
+
+            if (button.BackColor == mainBackgroundColor) {
+                button.BackColor = Color.Transparent;
+            }
         }
 
         private static void ApplyComboBoxChanges(ComboBox comboBox)
@@ -401,12 +483,32 @@ namespace TweakableDarkTheme
             }
         }
 
+        private static void ApplyDataGridViewChanges(DataGridView dataGridView)
+        {
+            foreach(DataGridViewRow row in dataGridView.Rows)
+            {
+                foreach(DataGridViewCell cell in row.Cells)
+                {
+                    // if (cell.Style.BackColor == mainBackgroundColor) cell.Style.BackColor = Color.Transparent;
+                }
+            }
+        }
+
         private static void ApplyListBoxChanges(ListBox listBox)
         {
             if (listBox.BorderStyle == BorderStyle.Fixed3D)
             {
                 listBox.BorderStyle = BorderStyle.FixedSingle;
             }
+            // listBox.BeginUpdate();
+            // Label tempLabel;
+            // for(int i = listBox.Items.Count - 1; i >= 0 ; i--) {
+            //     if (listBox.Items[i].GetType() == typeof(Label)) {
+            //         tempLabel = (Label) listBox.Items[i];
+            //         tempLabel.BackColor = Color.Transparent;
+            //     }
+            // }
+            // listBox.EndUpdate();
         }
 
         private static void ApplyFlowLayoutPanelChanges(FlowLayoutPanel flowLayoutPanel)
@@ -436,6 +538,19 @@ namespace TweakableDarkTheme
             {
                 label.Location = new Point(label.Location.X - 10, label.Location.Y);
             }
+            // if (label.BackColor == mainBackgroundColor) label.BackColor = Color.Transparent;
+        }
+
+        private static void ApplyScrollBarChanges(ScrollBar scrollBar)
+        {
+            scrollBar.ForeColor = mainTextColor;
+            scrollBar.BackColor = mainBackgroundColor;
+        }
+
+        private static void ApplyTabPageChanges(TabPage tabPage)
+        {
+            tabPage.ForeColor = mainTextColor;
+            tabPage.BackColor = mainBackgroundColor;
         }
 
         private static void ApplyFormChanges(Form form)
@@ -659,8 +774,58 @@ namespace TweakableDarkTheme
         }
 
         private void updateColours() {
+            if (mainBackgroundColor == mainTextColor) {
+                mainBackgroundColor = ControlPaint.Dark(mainBackgroundColor, 1f);
+                mainTextColor = ControlPaint.Light(mainTextColor, 1f);
+            }
+
             buttonBackgroundColor = ControlPaint.Light(mainBackgroundColor, 0.1f);
             disabledTextColor = ControlPaint.Dark(mainTextColor, 0.1f);
+        }
+
+        // Graphics Override attempt for Draw/FillRectangle methods
+        private static void GraphicsDrawRectanglePrefix(Graphics __instance, Pen pen)
+        {
+            if (InAuroraCode(__instance))
+            {
+                foreach (Action<Graphics, Pen> action in GraphicsDrawRectangleActions)
+                {
+                    action.Invoke(__instance, pen);
+                }
+            }
+        }
+
+        private static void GraphicsFillRectanglePrefix(Graphics __instance, Brush brush)
+        {
+            if (InAuroraCode(__instance))
+            {
+                foreach (Action<Graphics, Brush> action in GraphicsFillRectangleActions)
+                {
+                    action.Invoke(__instance, brush);
+                }
+            }
+        }
+        
+        public static void DrawRectanglePrefixAction(Action<Graphics, Pen> action)
+        {
+            GraphicsDrawRectangleActions.Add(action);
+        }
+
+        public static void FillRectanglePrefixAction(Action<Graphics, Brush> action)
+        {
+            GraphicsFillRectangleActions.Add(action);
+        }
+
+        private static bool InAuroraCode(Graphics graphics)
+        {
+            bool inAuroraCode;
+            bool result = AuroraGraphics.TryGetValue(graphics, out inAuroraCode);
+            if (!result)
+            {
+                inAuroraCode = Lib.Lib.IsAuroraCode();
+                AuroraGraphics[graphics] = inAuroraCode;
+            }
+            return inAuroraCode;
         }
     }
 }
