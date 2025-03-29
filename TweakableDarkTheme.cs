@@ -220,6 +220,7 @@ namespace TweakableDarkTheme
 
             ThemeCreator.ThemeCreator.DrawStringPrefixAction((graphics, s, font, brush) =>
             {
+                graphics.SmoothingMode = SmoothingMode.AntiAlias;
                 if (brush.GetType() == typeof(SolidBrush))
                 {
                     var solidBrush = brush as SolidBrush;
